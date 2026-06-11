@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Alaffia — Itemized Bill (Main App layout · Variant C findings control)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+/* ============================================================
+   Design tokens — Figma "Main App — Product design — Alaffia"
+   variable collection (names mirror Figma)
+   ============================================================ */
+:root{
+  --background:#ffffff;
+  --foreground:#18181b;
+  --muted:#f4f4f5;
+  --muted-foreground:#71717a;
+  --border:#d4d4d8;                       /* base/border */
+  --input:#e4e4e7;                        /* base/input */
+  --primary:#2a64f6;                      /* base/primary */
+  --primary-foreground:#eff6ff;
+  --secondary:#cad9ff;                    /* base/secondary */
+  --secondary-foreground:#18181b;
+  --success-foreground:#166534;
+  --success-background:#f0fdf4;
+  --warning:#d97706;
+  --warning-foreground:#fffbeb;
+  --destructive-foreground:#fef2f2;
+  --archived-foreground:#71717a;          /* base/badge-archived-foreground */
+
+  /* interface (chrome) scale */
+  --i-bg:#ffffff;                         /* base/interface-background */
+  --i-fg:#3f3f46;                         /* base/interface-foreground */
+  --i-border:#e5e7eb;                     /* base/interface-border */
+  --i-accent:#dbeafe;                     /* base/interface-accent */
+  --i-accent-fg:#18181b;                  /* base/interface-accent-foreground */
+  --i-primary-fg:#fafafa;                 /* base/interface-primary-foreground (panel bg) */
+
+  /* tailwind palette refs used in the design */
+  --blue-700:#1d4ed8;
+  --blue-100:#dbeafe;
+  --pink-700:#be185d;
+  --pink-50:#fdf2f8;
+  --rose-50:#fff1f2;
+
+  /* radii / shadow */
+  --r-sm:2px; --r-md:6px; --r-lg:8px; --r-full:9999px;
+  --shadow-sm:0 1px 2px rgba(23,37,84,.05);
+  --shadow-pop:0 12px 32px rgba(23,37,84,.16), 0 2px 8px rgba(23,37,84,.08);
+
+  --sans:"Geist","Geist Fallback",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:var(--sans);
+  color:var(--foreground);
+  background:var(--background);
+  font-size:14px;line-height:20px;
+  -webkit-font-smoothing:antialiased;
+  font-feature-settings:"tnum" 1;
+}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;font-size:14px;}
+p{margin:0;}
+.num{text-align:right;font-variant-numeric:tabular-nums;}
+
+/* ============================================================
+   App shell — sidebar 64, topbar 64
+   ============================================================ */
+.app{display:flex;min-height:100vh;}
+.sidebar{
+  width:64px;flex:0 0 64px;background:var(--i-bg);border-right:1px solid var(--i-border);
+  display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:4px;
+  position:sticky;top:0;height:100vh;
+}
+.logo{width:40px;height:40px;display:grid;place-items:center;color:var(--primary);margin-bottom:8px;}
+.nav-i{width:40px;height:40px;border-radius:var(--r-md);display:grid;place-items:center;color:var(--i-fg);transition:.12s;}
+.nav-i:hover{background:var(--muted);}
+.nav-i.active{background:var(--i-accent);color:var(--primary);}
+.sidebar .spacer{flex:1;}
+.avatar{width:32px;height:32px;border-radius:var(--r-full);background:var(--muted);color:var(--i-fg);
+  display:grid;place-items:center;font-weight:600;font-size:11px;margin-top:4px;}
+
+/* fixed at the Figma frame width (sidebar 64 + main 1376 = 1440) — not responsive */
+.main{flex:0 0 1376px;width:1376px;display:flex;flex-direction:column;}
+
+.topbar{height:64px;flex:0 0 64px;border-bottom:1px solid var(--i-border);background:var(--i-bg);
+  display:flex;align-items:center;gap:0;padding:0 16px;}
+.tb-toggle{width:28px;height:28px;border-radius:var(--r-md);display:grid;place-items:center;color:var(--i-fg);}
+.tb-toggle:hover{background:var(--muted);}
+.tb-sep{width:1px;height:15px;background:var(--i-border);margin:0 16px;}
+.crumb{display:flex;align-items:center;gap:8px;font-size:14px;}
+.crumb .root{color:var(--muted-foreground);}
+.crumb .sep{color:var(--muted-foreground);display:grid;place-items:center;}
+.crumb .cur{color:var(--foreground);font-weight:500;}
+
+.content{padding:12px 16px 80px;}
+
+/* ============================================================
+   Header card (1344 wide region) — header band + details + progress
+   ============================================================ */
+.claim-card{border:1px solid var(--i-border);border-radius:var(--r-lg) var(--r-lg) var(--r-md) var(--r-md);
+  overflow:hidden;background:var(--i-primary-fg);}
+
+/* header band: px16 py8 */
+.claim-head{display:flex;align-items:center;gap:8px;padding:8px 16px;background:var(--i-primary-fg);}
+.claim-id{flex:1;min-width:0;font-size:20px;line-height:28px;font-weight:600;color:var(--foreground);}
+.hbtn{width:36px;height:36px;border-radius:var(--r-md);display:grid;place-items:center;color:var(--i-fg);}
+.hbtn:hover{background:var(--muted);}
+.btn{height:36px;display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:var(--r-md);
+  font-size:14px;font-weight:500;transition:.12s;white-space:nowrap;}
+.btn-primary{background:var(--primary);color:var(--primary-foreground);}
+.btn-primary:hover{background:var(--blue-700);}
+
+/* details panel: 4 cells flex-1, py10 inner px16, 1px dividers */
+.claim-details{display:flex;align-items:stretch;border-top:1px solid var(--i-border);background:var(--i-primary-fg);}
+.det-cell{flex:1;min-width:0;padding:10px 16px;display:flex;flex-direction:column;gap:4px;justify-content:center;}
+.det-cell + .det-cell{border-left:1px solid var(--i-border);}
+.det-cell.assignee{flex-direction:row;align-items:center;gap:16px;padding-right:6px;}
+.det-cell.assignee .det-inner{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;}
+.det-label{font-size:12px;line-height:16px;font-weight:500;color:var(--muted-foreground);}
+.det-val{font-size:14px;line-height:20px;color:var(--foreground);min-height:20px;}
+.det-val.savings{font-weight:600;color:var(--success-foreground);}
+.det-collapse{width:36px;height:36px;border-radius:var(--r-md);display:grid;place-items:center;color:var(--i-fg);opacity:.5;flex:0 0 36px;}
+.badge-audit{align-self:flex-start;display:inline-flex;align-items:center;background:var(--secondary);color:var(--secondary-foreground);
+  border-radius:var(--r-full);padding:2px 10px;font-size:12px;line-height:16px;font-weight:600;}
+
+/* progress bar: px16 py12 gap16 */
+.progress-bar{display:flex;align-items:center;gap:16px;padding:12px 16px;border-top:1px solid var(--i-border);background:var(--i-primary-fg);}
+.cur-stage{display:flex;align-items:center;gap:4px;flex:0 0 auto;}
+.stage-pill{display:inline-flex;align-items:center;gap:4px;background:var(--primary);color:var(--primary-foreground);
+  padding:2px 10px;border-radius:var(--r-full);font-size:12px;line-height:16px;font-weight:600;white-space:nowrap;}
+.stage-days{font-size:12px;line-height:16px;color:var(--muted-foreground);opacity:.7;white-space:nowrap;}
+.pb-divider{width:1px;align-self:stretch;background:var(--i-border);flex:0 0 1px;}
+.stages{display:flex;flex:1;min-width:0;gap:6px;align-items:stretch;}
+.stage{flex:1;min-width:0;border-radius:var(--r-md);padding:4px 8px 8px;display:flex;flex-direction:column;gap:6px;overflow:hidden;}
+.stage.done{background:var(--success-background);border:1px solid #d0e0d6;}
+.stage.cur{background:var(--primary-foreground);border:1px solid #aac1fb;}
+.stage.todo{background:var(--muted);}
+.stage .lbl{font-size:12px;line-height:16px;font-weight:500;color:var(--muted-foreground);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bars{display:flex;gap:2px;align-items:center;}
+.bars i{height:6px;flex:1;min-width:0;border-radius:var(--r-full);background:var(--input);}
+.bars i.g{background:var(--success-foreground);opacity:.5;}
+.bars i.a{background:var(--archived-foreground);opacity:.5;}
+.bars i.p{background:var(--primary);}
+.pb-chev{width:36px;height:36px;border-radius:var(--r-md);display:grid;place-items:center;color:var(--i-fg);opacity:.5;flex:0 0 36px;}
+
+/* ============================================================
+   Tabs (underline)
+   ============================================================ */
+.tabs{display:flex;gap:0;margin-top:16px;border-bottom:1px solid var(--i-border);}
+.tab{height:40px;padding:0 12px;margin-right:8px;font-size:14px;color:var(--muted-foreground);font-weight:500;
+  border-bottom:2px solid transparent;margin-bottom:-1px;transition:.12s;display:inline-flex;align-items:center;}
+.tab:hover{color:var(--foreground);}
+.tab.active{color:var(--foreground);font-weight:600;border-bottom-color:var(--primary);}
+
+/* ============================================================
+   Toolbar (64px band; controls 36–40 tall)
+   ============================================================ */
+.toolbar{display:flex;align-items:center;gap:8px;padding:16px 0;}
+.search{position:relative;width:240px;}
+.search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted-foreground);}
+.search input{width:100%;height:36px;border:1px solid var(--input);border-radius:var(--r-md);
+  padding:8px 12px 8px 34px;font-size:14px;font-family:inherit;color:var(--foreground);background:var(--background);}
+.search input::placeholder{color:var(--muted-foreground);opacity:.85;}
+.search input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 2px rgba(42,100,246,.18);}
+
+.segmented{display:inline-flex;background:var(--muted);border-radius:var(--r-md);padding:4px;gap:0;height:40px;}
+.segmented button{padding:0 16px;border-radius:4px;font-size:14px;font-weight:500;color:var(--muted-foreground);transition:.12s;}
+.segmented button.active{background:var(--background);color:var(--foreground);box-shadow:var(--shadow-sm);}
+
+.sel{height:36px;display:inline-flex;align-items:center;gap:8px;border:1px solid var(--input);border-radius:var(--r-md);
+  background:var(--background);padding:8px 12px;font-size:14px;color:var(--foreground);font-weight:400;justify-content:space-between;min-width:164px;}
+.sel:hover{background:var(--muted);}
+.sel svg{color:var(--muted-foreground);}
+
+.switch-line{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:500;cursor:pointer;user-select:none;margin-left:4px;white-space:nowrap;}
+.switch{width:36px;height:20px;border-radius:var(--r-full);background:var(--input);position:relative;transition:.15s;flex:0 0 36px;}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:var(--r-full);background:#fff;box-shadow:var(--shadow-sm);transition:.15s;}
+.switch.on{background:var(--primary);}
+.switch.on::after{left:18px;}
+
+.spring{flex:1;}
+.density{display:inline-flex;border:1px solid var(--input);border-radius:var(--r-md);overflow:hidden;height:40px;}
+.density button{width:44px;display:grid;place-items:center;color:var(--i-fg);}
+.density button + button{border-left:1px solid var(--input);}
+.density button:hover{background:var(--muted);}
+.density button.on{background:var(--muted);color:var(--foreground);}
+
+/* toolbar findings filter label */
+.tb-label{font-size:14px;font-weight:500;color:var(--foreground);white-space:nowrap;margin-left:4px;}
+
+/* ============================================================
+   Table block: 1308 columns + 36 rail
+   ============================================================ */
+.table-zone{display:flex;align-items:stretch;width:1344px;border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;background:var(--background);}
+.table-scroll{flex:0 0 1308px;width:1308px;}
+table.ib,table.sub{border-collapse:collapse;width:1308px;table-layout:fixed;}
+/* shared fixed column grid — Figma "Main App" (1308 total); main table + findings sub-table use it identically for perfect alignment */
+col.g1{width:72px;}  col.g2{width:64px;}  col.g3{width:24px;}  col.g4{width:110px;} col.g5{width:120px;}
+col.g6{width:108px;} col.g7{width:105px;} col.g8{width:89px;}  col.g9{width:100px;} col.g10{width:69px;}
+col.g11{width:116px;}col.g12{width:113px;}col.g13{width:218px;}
+
+.ib thead th{height:48px;padding:0 16px;font-size:14px;font-weight:500;color:var(--muted-foreground);
+  text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;vertical-align:middle;background:var(--background);}
+.ib thead th.col-cb{padding:0 0 0 16px;}
+.ib thead th.col-find{padding:0 0 0 24px;}
+.ib thead th.col-chev,.ib thead th.col-no{padding:0;}
+.ib thead th.num{text-align:right;}
+/* Rev column is centered in the Figma design (gives Findings/Rev breathing room) */
+.ib .rev-c,.sub .rev-c{text-align:center;}
+/* Qty / Disc. Qty: center header + value so the number sits under its label */
+.ib .qty-c,.sub .qty-c{text-align:center;}
+/* checkbox is taken out of the text line (absolute) so the label baseline matches the plain-text headers */
+.cbhead{position:relative;display:inline-block;padding-left:22px;color:var(--muted-foreground);font-weight:500;white-space:nowrap;}
+.cbhead .cb{position:absolute;left:0;top:50%;transform:translateY(-50%);margin:0;}
+.ib tbody td{height:48px;padding:0 16px;border-bottom:1px solid var(--i-border);font-size:14px;vertical-align:middle;white-space:nowrap;}
+.ib.compact tbody td{height:36px;}
+.ib tbody td.col-cb{padding:0 0 0 16px;}
+.ib tbody td.col-chev,.ib tbody td.col-no{padding:0;text-align:center;}
+/* collapse line-height so checkbox/chevron center geometrically (no baseline offset) */
+.ib tbody td.col-cb,.ib tbody td.col-chev,.sub tbody td.sc{line-height:0;}
+.ib tbody td.num{text-align:right;}
+.ib tbody tr.item:hover>td{background:#fafafa;}
+.ib tbody tr.item.sel-row>td{background:var(--primary-foreground);}
+.ib tbody tr.item.st-accepted>td{background:var(--success-background);}
+.ib tbody tr.item.st-declined>td{background:var(--rose-50);}
+.ib tbody tr.item.st-suggested>td{background:var(--warning-foreground);}
+.dim{color:var(--muted-foreground);}
+.dash{color:#a1a1aa;}
+
+.chev{width:20px;height:20px;border-radius:4px;display:inline-grid;place-items:center;color:var(--muted-foreground);
+  transition:transform .15s, background .12s;}
+.chev:hover{background:rgba(0,0,0,.06);color:var(--foreground);}
+.chev.open{transform:rotate(90deg);}
+
+/* checkbox — Main App spec: 16px, primary border 1.5, ~4px corners; primary fill when checked */
+.cb{width:16px;height:16px;border:1.5px solid var(--primary);border-radius:4px;display:inline-grid;place-items:center;
+  background:var(--background);transition:.1s;flex:0 0 16px;cursor:pointer;vertical-align:middle;}
+.cb:hover{background:#f5f8ff;}
+.cb svg{width:11px;height:11px;color:#fff;stroke-width:3;display:none;}
+.cb[data-state="checked"]{background:var(--primary);border-color:var(--primary);}
+.cb[data-state="checked"] .ck{display:block;}
+.cb[data-state="indeterminate"]{background:var(--primary);border-color:var(--primary);}
+.cb[data-state="indeterminate"] .mn{display:block;}
+.cb.inert{opacity:.4;pointer-events:none;}
+
+/* denial chips */
+.den{display:inline-flex;align-items:center;border-radius:var(--r-md);padding:2px 8px;font-size:12px;line-height:16px;font-weight:600;}
+.den.blue{background:var(--i-accent);color:var(--blue-700);border:1px solid #bfd4fb;}
+.den.pink{background:var(--pink-50);color:var(--pink-700);border:1px solid #f6cfe2;}
+.den-wrap{display:inline-flex;gap:4px;flex-wrap:wrap;}
+.savings{color:var(--success-foreground);font-weight:600;}
+
+/* status pills */
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:var(--r-md);padding:2px 8px;font-size:12px;line-height:16px;font-weight:600;white-space:nowrap;border:1px solid transparent;}
+.pill.suggested{background:var(--warning-foreground);color:#b45309;border-color:#fde68a;}
+.pill.accepted{background:var(--success-background);color:var(--success-foreground);border-color:#bbf7d0;}
+.pill.declined{background:var(--destructive-foreground);color:#b91c1c;border-color:#fecaca;}
+
+/* ============================================================
+   Findings sub-table
+   ============================================================ */
+.sub-cell{padding:0!important;background:var(--background);border-bottom:1px solid var(--i-border)!important;}
+/* table.sub shares the .ib grid (declared above) — identical column widths => perfect alignment */
+.sub thead th{height:48px;padding:0 10px;font-size:12px;font-weight:500;color:var(--muted-foreground);text-align:left;
+  border-bottom:1px solid var(--i-border);white-space:nowrap;vertical-align:middle;}
+.sub thead th.num{text-align:right;}
+.sub thead th.lead,.sub thead th.sc{padding:0;}
+.sub tbody td{height:48px;padding:0 16px;border-bottom:1px dashed var(--input);font-size:14px;vertical-align:middle;white-space:nowrap;}
+.ib.compact .sub tbody td{height:40px;}
+.sub tbody tr:last-child td{border-bottom:none;}
+.sub tbody td.num{text-align:right;}
+.sub tbody td.sc{padding:0;text-align:center;}
+.sub tbody tr.f-sel>td{background:var(--primary-foreground);}
+.f-status{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.created-by{display:inline-flex;align-items:center;gap:8px;color:var(--foreground);}
+.rule-ava{width:24px;height:24px;border-radius:var(--r-full);display:inline-grid;place-items:center;flex:0 0 24px;}
+.rule-ava.light{background:var(--i-accent);color:var(--primary);}
+.rule-ava.dark{background:var(--primary);color:#fff;}
+.f-actions{display:inline-flex;gap:6px;}
+.fab{width:30px;height:30px;border-radius:var(--r-md);border:1px solid var(--input);background:var(--background);display:grid;place-items:center;transition:.12s;}
+.fab.acc{color:#16a34a;border-color:#bbf7d0;background:var(--success-background);}
+.fab.acc:hover{background:#dcfce7;}
+.fab.edt{color:var(--primary);border-color:#bfdbfe;background:var(--primary-foreground);}
+.fab.edt:hover{background:var(--blue-100);}
+
+/* ============================================================
+   Right rail (36px) — Columns / Filters / IDs
+   ============================================================ */
+/* sections distributed down the full height (IDs tallest) — heights mirror Figma 156/116/480 */
+.rail{width:36px;flex:0 0 36px;border-left:1px solid var(--i-border);display:flex;flex-direction:column;align-items:stretch;}
+.rail button{width:36px;display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--i-fg);
+  font-size:12px;font-weight:500;padding:12px 0 0;justify-content:flex-start;}
+.rail button:hover{color:var(--foreground);}
+.rail button + button{border-top:1px solid var(--i-border);}
+.rail .vtext{writing-mode:vertical-rl;}
+.rail .r-col{flex:0 0 156px;} .rail .r-fil{flex:0 0 116px;} .rail .r-id{flex:1 1 0;min-height:0;}
+
+/* ============================================================
+   Floating action bar
+   ============================================================ */
+.actionbar{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(40px);
+  background:var(--background);border:1px solid var(--input);border-radius:10px;box-shadow:var(--shadow-pop);
+  display:flex;align-items:center;gap:14px;padding:8px 10px 8px 18px;z-index:60;opacity:0;pointer-events:none;
+  transition:opacity .18s, transform .18s;}
+.actionbar.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto;}
+.ab-count{font-size:14px;font-weight:600;white-space:nowrap;}
+.ab-clear{font-size:14px;color:var(--primary);font-weight:500;padding:6px 8px;border-radius:4px;}
+.ab-clear:hover{background:var(--primary-foreground);}
+.ab-div{width:1px;height:22px;background:var(--i-border);}
+.ab-actions{display:flex;gap:8px;}
+.btn-soft{background:var(--primary-foreground);border:1px solid #bcd0fb;color:var(--primary);}
+.btn-soft:hover{background:var(--blue-100);}
+.btn-outline{border:1px solid var(--input);background:var(--background);color:var(--foreground);}
+.btn-outline:hover{background:var(--muted);}
+
+/* ============================================================
+   Modal (Edit / Create findings)
+   ============================================================ */
+.overlay{position:fixed;inset:0;background:rgba(24,24,27,.45);z-index:100;display:none;align-items:flex-start;justify-content:center;padding:48px 16px;overflow:auto;}
+.overlay.open{display:flex;animation:fade .15s ease;}
+@keyframes fade{from{opacity:0;}to{opacity:1;}}
+.dialog{background:var(--background);border:1px solid var(--input);border-radius:var(--r-lg);box-shadow:var(--shadow-pop);
+  width:100%;max-width:880px;animation:rise .18s ease;overflow:hidden;display:flex;flex-direction:column;max-height:calc(100vh - 96px);}
+.dialog.sm{max-width:560px;}
+@keyframes rise{from{opacity:0;transform:translateY(10px) scale(.99);}to{opacity:1;transform:none;}}
+.dlg-head{padding:24px 24px 16px;border-bottom:1px solid var(--i-border);position:relative;}
+.dlg-title{font-size:18px;font-weight:600;margin:0;}
+.dlg-sub{font-size:14px;color:var(--muted-foreground);margin:6px 0 0;max-width:640px;}
+.dlg-x{position:absolute;top:20px;right:20px;width:32px;height:32px;border-radius:var(--r-md);display:grid;place-items:center;color:var(--muted-foreground);}
+.dlg-x:hover{background:var(--muted);color:var(--foreground);}
+.dlg-body{padding:20px 24px;overflow:auto;}
+.dlg-foot{padding:16px 24px;border-top:1px solid var(--i-border);display:flex;justify-content:flex-end;gap:10px;}
+.section-h{font-size:14px;font-weight:600;margin:4px 0 10px;display:flex;align-items:center;gap:8px;}
+.section-h .cnt{color:var(--muted-foreground);font-weight:400;}
+.combos{border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;}
+table.cmb{width:100%;border-collapse:collapse;}
+.cmb th{height:42px;padding:0 12px;font-size:13px;color:var(--muted-foreground);font-weight:500;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
+.cmb th.num{text-align:right;}
+.cmb td{padding:12px;border-bottom:1px solid var(--i-border);font-size:14px;vertical-align:top;}
+.cmb tbody tr:last-child td{border-bottom:none;}
+.cmb tbody tr.removing{background:var(--destructive-foreground);}
+.count-badge{display:inline-flex;align-items:center;justify-content:center;font-size:12px;line-height:16px;font-weight:600;
+  background:var(--primary-foreground);color:var(--primary);border:1px solid #bcd0fb;border-radius:var(--r-full);padding:2px 8px;min-width:36px;}
+.rationale{color:var(--muted-foreground);font-size:13px;line-height:1.45;max-width:280px;white-space:normal;}
+.btn-exclude{color:#dc2626;font-size:13px;font-weight:500;padding:5px 10px;border-radius:var(--r-md);border:1px solid transparent;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
+.btn-exclude:hover{background:var(--destructive-foreground);border-color:#fecaca;}
+.overwrite{margin-top:22px;border:1px solid var(--i-border);border-radius:var(--r-md);padding:18px;background:#fafafa;}
+.ow-note{font-size:13px;color:var(--muted-foreground);margin:-4px 0 16px;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 16px;}
+.field{display:flex;flex-direction:column;gap:6px;}
+.field.full{grid-column:1/-1;}
+.field label{font-size:14px;font-weight:500;}
+.inp,select.inp,textarea.inp{border:1px solid var(--input);border-radius:var(--r-md);background:var(--background);font-family:inherit;font-size:14px;color:var(--foreground);padding:0 12px;height:40px;width:100%;}
+textarea.inp{height:auto;padding:10px 12px;resize:vertical;min-height:72px;line-height:1.5;}
+.inp:focus,select.inp:focus,textarea.inp:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 2px rgba(42,100,246,.18);}
+.fin-impact{grid-column:1/-1;border-top:1px dashed var(--input);padding-top:14px;margin-top:2px;}
+.fin-impact .imp-h{font-size:14px;font-weight:600;margin-bottom:10px;}
+.check-line{display:flex;align-items:center;gap:10px;font-size:14px;margin-bottom:12px;cursor:pointer;}
+.qty-row{display:flex;align-items:center;gap:10px;}
+.qty-row label{font-size:14px;color:var(--muted-foreground);min-width:160px;}
+.qty-row .inp{max-width:130px;}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- ===== sidebar ===== -->
+  <aside class="sidebar">
+    <div class="logo" title="Alaffia">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M12 2.5 2.5 21h6.2l3.3-6.6 3.3 6.6h6.2L12 2.5Z" fill="currentColor"/><path d="M12 10.2 9.4 15h5.2L12 10.2Z" fill="#fff"/></svg>
+    </div>
+    <button class="nav-i" title="Notifications"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></button>
+    <button class="nav-i" title="Home"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg></button>
+    <button class="nav-i active" title="Claims"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="7" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></button>
+    <button class="nav-i" title="Documents"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg></button>
+    <button class="nav-i" title="Upload"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg></button>
+    <button class="nav-i" title="Audit log"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M9 12h6M9 16h4"/></svg></button>
+    <div class="spacer"></div>
+    <button class="nav-i" title="Settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+    <div class="avatar">AT</div>
+  </aside>
+
+  <!-- ===== main ===== -->
+  <div class="main">
+    <div class="topbar">
+      <button class="tb-toggle" title="Toggle sidebar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></svg></button>
+      <div class="tb-sep"></div>
+      <nav class="crumb">
+        <span class="root">Claims</span>
+        <span class="sep"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+        <span class="cur">Claim: dc00007</span>
+      </nav>
+    </div>
+
+    <div class="content">
+      <!-- ===== claim card ===== -->
+      <section class="claim-card">
+        <!-- header band -->
+        <div class="claim-head">
+          <div class="claim-id">dc00007</div>
+          <button class="hbtn" title="Documents"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></button>
+          <button class="hbtn" title="Knowledge"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></button>
+          <button class="hbtn" title="Info"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></button>
+          <button class="btn btn-primary">Claim Actions
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
+        </div>
+        <!-- details panel -->
+        <div class="claim-details">
+          <div class="det-cell"><div class="det-label">Audit Type</div><span class="badge-audit">DRG</span></div>
+          <div class="det-cell"><div class="det-label">Client</div><div class="det-val">Blue Horizon</div></div>
+          <div class="det-cell"><div class="det-label">Determined Savings</div><div class="det-val savings" id="detSavingsHeader">$196.35</div></div>
+          <div class="det-cell assignee">
+            <div class="det-inner"><div class="det-label">Primary Assignee</div><div class="det-val">Aisha Khan</div></div>
+            <button class="det-collapse" title="Collapse"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg></button>
+          </div>
+        </div>
+        <!-- progress bar -->
+        <div class="progress-bar">
+          <div class="cur-stage">
+            <span class="stage-pill">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+              PIA Assignment
+            </span>
+            <span class="stage-days">(5 days)</span>
+          </div>
+          <div class="pb-divider"></div>
+          <div class="stages">
+            <div class="stage done"><div class="lbl">Intake</div><div class="bars"><i class="g"></i><i class="g"></i><i class="a"></i><i class="a"></i></div></div>
+            <div class="stage cur"><div class="lbl">Audit</div><div class="bars"><i class="p"></i><i></i><i></i><i></i></div></div>
+            <div class="stage todo"><div class="lbl">Provider Reporting</div><div class="bars"><i></i><i></i><i></i><i></i></div></div>
+            <div class="stage todo"><div class="lbl">Dispute</div><div class="bars"><i></i><i></i></div></div>
+            <div class="stage todo"><div class="lbl">Client Reporting</div><div class="bars"><i></i><i></i><i></i><i></i></div></div>
+            <div class="stage todo"><div class="lbl">Appeals</div><div class="bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+            <div class="stage todo"><div class="lbl">Closed</div><div class="bars"><i></i></div></div>
+          </div>
+          <button class="pb-chev" title="Expand"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
+        </div>
+      </section>
+
+      <!-- ===== tabs ===== -->
+      <nav class="tabs">
+        <button class="tab">Details</button>
+        <button class="tab">DRG</button>
+        <button class="tab">UB</button>
+        <button class="tab active">IB</button>
+        <button class="tab">Findings</button>
+        <button class="tab">Reports</button>
+      </nav>
+
+      <!-- ===== toolbar ===== -->
+      <div class="toolbar">
+        <div class="search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" id="searchInput" placeholder="Search Items..." />
+        </div>
+        <div class="segmented" id="segItemsRules">
+          <button class="active" data-seg="items">Items</button>
+          <button data-seg="rules">Rules</button>
+        </div>
+
+        <span class="tb-label">Findings</span>
+
+        <button class="sel"><span>All Statuses</span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
+        <button class="sel"><span>All Rules</span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
+        <label class="switch-line" id="ubDosLine">
+          <span class="switch" id="ubDosSwitch"></span>
+          Only UB DoS
+        </label>
+        <div class="spring"></div>
+        <div class="density">
+          <button id="btnCompact" title="Compact density"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="m9 8 3-3 3 3"/><path d="m9 16 3 3 3-3"/></svg></button>
+          <button id="btnComfy" class="on" title="Comfortable density"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>
+        </div>
+      </div>
+
+      <!-- ===== table + rail ===== -->
+      <div class="table-zone">
+        <div class="table-scroll">
+          <table class="ib" id="ibTable">
+            <colgroup>
+              <col class="g1" /><col class="g2" /><col class="g3" /><col class="g4" /><col class="g5" />
+              <col class="g6" /><col class="g7" /><col class="g8" /><col class="g9" />
+              <col class="g10" /><col class="g11" /><col class="g12" /><col class="g13" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th class="col-cb">
+                  <span class="cbhead">
+                    <span class="cb" id="headCb" data-state="unchecked" role="checkbox" tabindex="0" title="Select all items">
+                      <svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                      <svg class="mn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>
+                    </span>Items
+                  </span>
+                </th>
+                <th class="col-find" colspan="2">
+                  <span class="cbhead">
+                    <span class="cb" id="headFindCb" data-state="unchecked" role="checkbox" tabindex="0" title="Select all findings">
+                      <svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                      <svg class="mn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>
+                    </span>Findings
+                  </span>
+                </th>
+                <th class="rev-c">Rev</th>
+                <th>Item No.</th>
+                <th>Description</th>
+                <th>Procedure</th>
+                <th>Proc mode</th>
+                <th>DoS</th>
+                <th class="qty-c">Qty</th>
+                <th class="num">Billed</th>
+                <th class="num">Det. Savings</th>
+                <th>Denial Code</th>
+              </tr>
+            </thead>
+            <tbody id="ibBody"><!-- rendered by JS --></tbody>
+          </table>
+        </div>
+        <div class="rail">
+          <button class="r-col" title="Columns"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18M15 3v18"/></svg><span class="vtext">Columns</span></button>
+          <button class="r-fil" title="Filters"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg><span class="vtext">Filters</span></button>
+          <button class="r-id" title="IDs"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg><span class="vtext">IDs</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== floating action bar ===== -->
+<div class="actionbar" id="actionBar">
+  <span class="ab-count" id="abCount">Selected 0 Items</span>
+  <button class="ab-clear" id="abClear">Clear</button>
+  <div class="ab-div"></div>
+  <div class="ab-actions" id="abActions"></div>
+</div>
+
+<div class="overlay" id="overlay"></div>
+
+<script>
+"use strict";
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+const money = n => "$" + n.toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:2});
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+
+const ICON = {
+  chev:'<path d="m9 18 6-6-6-6"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>',
+  x:'<path d="M18 6 6 18M6 6l12 12"/>',
+  pencil:'<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+  bulb:'<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5"/><path d="M9 18h6M10 22h4"/>',
+  clip:'<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h4"/>',
+};
+const svg = (paths, w=14, sw=2) =>
+  `<svg width="${w}" height="${w}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
+
+/* ===== data — mirrors the Figma frame (claim dc00007) ===== */
+const RULES = {
+  LOC:{rule:"Level of care rule",        rationale:"Level of care not appropriate — documentation does not support ICU-level acuity for this date of service."},
+  UPC:{rule:"Upcoding rule",              rationale:"Upcoding not justified — record supports a lower acuity level than billed."},
+  UNI:{rule:"Exceeding unit limits rule", rationale:"Unit limits exceeded — plan caps R&B ICU at the allowed number of days per stay."},
+  BUN:{rule:"Bundling rule",              rationale:"Unbundled / incidental charge — not separately reimbursable under the plan."},
+  MNC:{rule:"Medical necessity rule",     rationale:"Service not medically necessary for the documented condition."},
+  DUP:{rule:"Duplicate charge rule",      rationale:"Duplicate line item — this charge was already billed on the claim."},
+};
+let fid = 0;
+const finding = (key, status, den, avatar="light") => {
+  const t = RULES[key];
+  return {id:"f"+(fid++), rev:"0202", den, rule:t.rule, rationale:t.rationale,
+          created:"10/10/25", qty:1, billed:2238.28, savings:2238.28, status, avatar};
+};
+const ITEMS = [
+  {no:"312531001", rev:"0191", dos:"1/18/2021", billed:2425.00, findings:[finding("LOC","suggested","OL"), finding("UPC","suggested","OR")]},
+  {no:"312531002", rev:"0192", dos:"1/19/2021", billed:2425.00, findings:[finding("UNI","suggested","OF"), finding("BUN","suggested","OU")]},
+  {no:"312531003", rev:"0193", dos:"1/20/2021", billed:100.00,  findings:[finding("LOC","accepted","OL"), finding("UNI","suggested","OF")]},
+  {no:"312531004", rev:"0194", dos:"1/21/2021", billed:100.00,  findings:[finding("LOC","accepted","OL"), finding("BUN","suggested","OU")]},
+  {no:"312531005", rev:"0195", dos:"1/22/2021", billed:2425.00, findings:[finding("UPC","declined","OR"), finding("MNC","declined","MN")]},
+  {no:"312531006", rev:"0196", dos:"1/23/2021", billed:2425.00, findings:[finding("LOC","suggested","OL"), finding("UPC","suggested","OR"), finding("UNI","suggested","OF")]},
+  {no:"312531007", rev:"0197", dos:"1/23/2021", billed:2425.00, findings:[finding("BUN","suggested","OU"), finding("DUP","suggested","DC")]},
+  {no:"312531008", rev:"0196", dos:"1/23/2021", billed:2425.00,
+   findings:[finding("LOC","suggested","OR","light"), finding("UPC","suggested","OF","light"), finding("UNI","suggested","OL","dark")], expanded:true},
+].map((it,i) => ({id:"i"+i, idx:i+1, desc:"R&B ICU", qty:1, expanded:!!it.expanded, ...it}));
+
+const ALL_FINDINGS = () => ITEMS.flatMap(it => it.findings);
+const TOTAL_ITEMS = ITEMS.length;
+
+/* row tint, collapsed: accepted > declined > suggested */
+const itemState = it => {
+  if (!it.findings.length) return "none";
+  const s = it.findings.map(f => f.status);
+  if (s.includes("accepted")) return "accepted";
+  if (s.every(x => x === "declined")) return "declined";
+  if (s.includes("suggested")) return "suggested";
+  return "none";
+};
+
+/* determined savings — starts at the design's static value, adjusts on accept */
+let detSavings = 196.35;
+
+const state = {items:new Set(), findings:new Set(), density:"comfy", query:""};
+
+/* ===== render ===== */
+function checkbox(id, stateVal, extra="") {
+  return `<span class="cb ${extra}" data-state="${stateVal}" data-cb="${id}">
+    <svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6 9 17l-5-5"/></svg>
+    <svg class="mn" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14"/></svg></span>`;
+}
+
+function renderRow(it) {
+  const st = itemState(it);
+  const isSel = state.items.has(it.id);
+  const itemsLocked = state.findings.size > 0;
+  const accepted = it.findings.filter(f => f.status === "accepted");
+  const accSavings = accepted.reduce((a,f) => a + f.savings, 0);
+  const denCodes = [...new Set(accepted.map(f => f.den))];
+  const hasF = it.findings.length > 0;
+
+  const main = `
+    <tr class="item st-${st} ${isSel ? "sel-row" : ""}" data-item="${it.id}">
+      <td class="col-cb">${checkbox(it.id, isSel ? "checked" : "unchecked", itemsLocked ? "inert" : "")}</td>
+      <td class="col-chev"><span class="chev ${it.expanded ? "open" : ""}" data-toggle="${it.id}">${svg(ICON.chev,16,2)}</span></td>
+      <td class="col-no dim">${it.findings.length}</td>
+      <td class="rev-c">${it.rev}</td>
+      <td>${it.no}</td>
+      <td>${it.desc}</td>
+      <td class="dash">–</td>
+      <td class="dash">–</td>
+      <td>${it.dos}</td>
+      <td class="qty-c">${it.qty}</td>
+      <td class="num">${money(it.billed)}</td>
+      <td class="num">${accSavings > 0 ? `<span class="savings">${money(accSavings)}</span>` : `<span class="dash">–</span>`}</td>
+      <td>${denCodes.length ? `<div class="den-wrap">${denCodes.map(d => `<span class="den blue">${d}</span>`).join("")}</div>` : `<span class="dash">–</span>`}</td>
+    </tr>`;
+
+  if (!it.expanded || !hasF) return main;
+  return main + renderSub(it);
+}
+
+function renderSub(it) {
+  const findingsLocked = state.items.size > 0;
+  const rows = it.findings.map(f => {
+    const sel = state.findings.has(f.id);
+    return `
+      <tr class="${sel ? "f-sel" : ""}" data-finding="${f.id}">
+        <td></td>
+        <td class="sc">${checkbox(f.id, sel ? "checked" : "unchecked", findingsLocked ? "inert" : "")}</td>
+        <td class="sc"><span class="chev" style="cursor:default">${svg(ICON.chev,16,2)}</span></td>
+        <td class="rev-c">${f.rev}</td>
+        <td><span class="den pink">${f.den}</span></td>
+        <td colspan="3"><span class="created-by"><span class="rule-ava ${f.avatar}">${svg(ICON.clip,13,1.8)}</span>${f.rule}</span></td>
+        <td class="dim">${f.created}</td>
+        <td class="qty-c">${f.qty}</td>
+        <td class="num">${money(f.billed)}</td>
+        <td class="num"><span class="savings">${money(f.savings)}</span></td>
+        <td>
+          <div class="f-status">
+            <span class="pill ${f.status}">${f.status === "suggested" ? svg(ICON.bulb,11,2) : ""}${cap(f.status)}</span>
+            <span class="f-actions">
+              <button class="fab acc" data-fact="accept" data-f="${f.id}" title="Accept">${svg(ICON.check,15,2.2)}</button>
+              <button class="fab edt" data-fact="edit" data-f="${f.id}" title="Edit">${svg(ICON.pencil,14,1.8)}</button>
+            </span>
+          </div>
+        </td>
+      </tr>`;
+  }).join("");
+
+  return `
+    <tr class="sub-row"><td colspan="13" class="sub-cell">
+      <table class="sub">
+        <colgroup>
+          <col class="g1" /><col class="g2" /><col class="g3" /><col class="g4" /><col class="g5" />
+          <col class="g6" /><col class="g7" /><col class="g8" /><col class="g9" />
+          <col class="g10" /><col class="g11" /><col class="g12" /><col class="g13" />
+        </colgroup>
+        <thead><tr>
+          <th class="lead" colspan="3"></th>
+          <th class="rev-c">Rev</th><th>Denial Code</th>
+          <th colspan="3">Created by</th><th>Created</th>
+          <th class="qty-c">Disc. Qty</th><th class="num">Disc. Billed</th><th class="num">Det. Savings</th>
+          <th>Status</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </td></tr>`;
+}
+
+function render() {
+  const q = state.query.trim().toLowerCase();
+  const visible = q ? ITEMS.filter(it => it.no.includes(q) || it.desc.toLowerCase().includes(q)) : ITEMS;
+  $("#ibBody").innerHTML = visible.map(renderRow).join("");
+  updateHeader();
+  updateActionBar();
+  $("#detSavingsHeader").textContent = money(detSavings);
+}
+
+function updateHeader() {
+  // Items select-all checkbox (locked while findings selected)
+  const headCb = $("#headCb");
+  let si = "unchecked";
+  if (state.items.size > 0 && state.items.size >= TOTAL_ITEMS) si = "checked";
+  else if (state.items.size > 0) si = "indeterminate";
+  headCb.dataset.state = si;
+  headCb.classList.toggle("inert", state.findings.size > 0);
+
+  // Findings select-all checkbox (locked while items selected)
+  const all = ALL_FINDINGS();
+  const headFindCb = $("#headFindCb");
+  let sf = "unchecked";
+  if (all.length > 0 && state.findings.size >= all.length) sf = "checked";
+  else if (state.findings.size > 0) sf = "indeterminate";
+  headFindCb.dataset.state = sf;
+  headFindCb.classList.toggle("inert", state.items.size > 0);
+}
+
+function updateActionBar() {
+  const bar = $("#actionBar");
+  const isF = state.findings.size > 0;
+  const sel = isF ? state.findings : state.items;
+  if (sel.size === 0) { bar.classList.remove("show"); return; }
+  bar.classList.add("show");
+  $("#abCount").textContent = `Selected ${sel.size} ${isF ? "Finding" : "Item"}${sel.size === 1 ? "" : "s"}`;
+  const actions = $("#abActions");
+  if (isF) {
+    actions.innerHTML = `
+      <button class="btn btn-soft" id="abAccept">${svg(ICON.check,15,2.2)} Accept Suggestions</button>
+      <button class="btn btn-outline" id="abEdit">${svg(ICON.pencil,15,1.8)} Edit Suggestions</button>`;
+    $("#abAccept").onclick = () => {
+      ALL_FINDINGS().forEach(f => {
+        if (state.findings.has(f.id) && f.status !== "accepted") { f.status = "accepted"; detSavings += f.savings; }
+      });
+      state.findings.clear();
+      render();
+    };
+    $("#abEdit").onclick = () => openEditModal(buildCombosFromSelection());
+  } else {
+    actions.innerHTML = `<button class="btn btn-primary" id="abCreate">${svg(ICON.bulb,15,2)} Create Findings</button>`;
+    $("#abCreate").onclick = () => openCreateModal(sel.size);
+  }
+}
+
+/* ===== selection (Variant C) ===== */
+function selectAllItems() {
+  if (state.findings.size > 0) return;
+  if (state.items.size >= TOTAL_ITEMS) state.items.clear();
+  else ITEMS.forEach(i => state.items.add(i.id));
+  render();
+}
+function selectFindings(kind) {
+  if (state.items.size > 0) return;
+  if (kind === "clear") { state.findings.clear(); render(); return; }
+  ITEMS.forEach(i => { if (i.findings.length) i.expanded = true; });
+  const all = ALL_FINDINGS();
+  const ids = (kind === "suggested") ? all.filter(f => f.status === "suggested").map(f => f.id) : all.map(f => f.id);
+  const allOn = ids.length > 0 && ids.every(id => state.findings.has(id));
+  state.findings.clear();
+  if (!allOn) ids.forEach(id => state.findings.add(id));
+  render();
+}
+function clearSelection() { state.items.clear(); state.findings.clear(); render(); }
+
+/* ===== combinations ===== */
+function buildCombosFromSelection() {
+  const selected = ALL_FINDINGS().filter(f => state.findings.has(f.id));
+  const map = new Map();
+  selected.forEach(f => {
+    const key = [f.den, f.rev, f.qty, f.billed, f.savings, f.rationale].join("|");
+    if (!map.has(key)) map.set(key, {...f, count:0});
+    map.get(key).count++;
+  });
+  return [...map.values()].sort((a,b) => a.den.localeCompare(b.den) || (b.billed - a.billed));
+}
+
+/* ===== Edit modal ===== */
+function openEditModal(combos) {
+  const total = () => combos.reduce((a,c) => a + c.count, 0);
+  const overlay = $("#overlay");
+  overlay.innerHTML = `
+    <div class="dialog" role="dialog" aria-modal="true">
+      <div class="dlg-head">
+        <h2 class="dlg-title">Edit Findings (<span id="editCount">${total()}</span>)</h2>
+        <p class="dlg-sub">Shared values apply to all. Exclude combinations to narrow, or use Overwrite all below.</p>
+        <button class="dlg-x" data-close>${svg(ICON.x,17,2)}</button>
+      </div>
+      <div class="dlg-body">
+        <div class="section-h">Finding combinations <span class="cnt" id="comboCnt">· ${combos.length} distinct</span></div>
+        <div class="combos">
+          <table class="cmb">
+            <thead><tr>
+              <th style="width:60px;">Count</th><th>Den Code</th><th>Rev Code</th>
+              <th class="num">D Qty</th><th class="num">D Billed</th><th class="num">Det Savings</th>
+              <th>Rationale</th><th style="width:96px;"></th>
+            </tr></thead>
+            <tbody id="comboBody"></tbody>
+          </table>
+        </div>
+        <div class="overwrite">
+          <div class="section-h">Overwrite all <span class="cnt">· optional</span></div>
+          <p class="ow-note">Leave blank to keep existing values.</p>
+          <div class="form-grid">
+            <div class="field"><label>Status</label>
+              <select class="inp"><option>Keep current</option><option>Suggested</option><option>Accepted</option><option>Declined</option></select></div>
+            <div class="field"><label>Rev Code</label><input class="inp" placeholder="Keep current" /></div>
+            <div class="field"><label>Denial Code</label>
+              <select class="inp"><option>Keep current</option><option>OL — Level of Care</option><option>OR — Upcoding / Reduction</option><option>OF — Unit / Frequency</option></select></div>
+            <div class="field"></div>
+            <div class="field full"><label>Rationale</label><textarea class="inp" placeholder="Keep current rationale…"></textarea></div>
+            <div class="fin-impact"><div class="imp-h">Financial Impact</div>
+              <div class="qty-row"><label>Discrepant Quantity</label><input class="inp" type="number" placeholder="Keep current" /></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="dlg-foot">
+        <button class="btn btn-outline" data-close>Cancel</button>
+        <button class="btn btn-primary" id="editConfirm">Edit <span id="editBtnCount">${total()}</span> Findings</button>
+      </div>
+    </div>`;
+  function paintCombos() {
+    $("#comboBody").innerHTML = combos.map((c, idx) => `
+      <tr data-combo="${idx}">
+        <td><span class="count-badge">${c.count}×</span></td>
+        <td><span class="den pink">${c.den}</span></td>
+        <td>${c.rev}</td>
+        <td class="num">${c.qty}</td>
+        <td class="num">${money(c.billed)}</td>
+        <td class="num"><span class="savings">${money(c.savings)}</span></td>
+        <td><div class="rationale">${c.rationale}</div></td>
+        <td style="text-align:right;"><button class="btn-exclude" data-exclude="${idx}">${svg(ICON.x,13,2.2)} Exclude</button></td>
+      </tr>`).join("");
+  }
+  function refreshCounts() {
+    $("#editCount").textContent = total(); $("#editBtnCount").textContent = total();
+    $("#comboCnt").textContent = `· ${combos.length} distinct`;
+  }
+  paintCombos();
+  overlay.onclick = e => {
+    if (e.target === overlay || e.target.closest("[data-close]")) return closeModal();
+    const ex = e.target.closest("[data-exclude]");
+    if (ex) {
+      const i = +ex.dataset.exclude;
+      ex.closest("tr").classList.add("removing");
+      setTimeout(() => { combos.splice(i,1); if (!combos.length) return closeModal(); paintCombos(); refreshCounts(); }, 140);
+    }
+    if (e.target.closest("#editConfirm")) closeModal();
+  };
+  openOverlay();
+}
+
+/* ===== Create modal ===== */
+function openCreateModal(n) {
+  const overlay = $("#overlay");
+  overlay.innerHTML = `
+    <div class="dialog sm" role="dialog" aria-modal="true">
+      <div class="dlg-head">
+        <h2 class="dlg-title">Create Findings</h2>
+        <p class="dlg-sub">Creating findings for <b>${n}</b> item${n === 1 ? "" : "s"}. The same values apply to every selected line item.</p>
+        <button class="dlg-x" data-close>${svg(ICON.x,17,2)}</button>
+      </div>
+      <div class="dlg-body">
+        <div class="form-grid">
+          <div class="field full"><label>Denial Code</label>
+            <select class="inp"><option value="">Select a denial code…</option><option>OL — Level of Care Not Appropriate</option><option>OR — Upcoding / Reduction</option><option>OF — Unit / Frequency Limit</option></select></div>
+          <div class="field full"><label>Rationale</label><textarea class="inp" placeholder="Explain the basis for these findings…"></textarea></div>
+          <div class="field full"><label>Rev Code</label><input class="inp" placeholder="e.g. 0202" /></div>
+          <div class="fin-impact"><div class="imp-h">Financial Impact</div>
+            <label class="check-line" id="repriceLine">${checkbox("reprice","unchecked")}<span>Reprice — recalculate the allowed amount for this charge</span></label>
+            <div class="qty-row"><label>Discrepant Quantity</label><input class="inp" type="number" placeholder="0" /></div></div>
+        </div>
+      </div>
+      <div class="dlg-foot">
+        <button class="btn btn-outline" data-close>Cancel</button>
+        <button class="btn btn-primary" id="createConfirm">Create ${n} Finding${n === 1 ? "" : "s"}</button>
+      </div>
+    </div>`;
+  overlay.onclick = e => {
+    if (e.target === overlay || e.target.closest("[data-close]")) return closeModal();
+    const cb = e.target.closest('[data-cb="reprice"]');
+    if (cb) cb.dataset.state = cb.dataset.state === "checked" ? "unchecked" : "checked";
+    if (e.target.closest("#createConfirm")) closeModal();
+  };
+  openOverlay();
+}
+function openOverlay() { $("#overlay").classList.add("open"); document.body.style.overflow = "hidden"; }
+function closeModal() { const o = $("#overlay"); o.classList.remove("open"); o.innerHTML = ""; o.onclick = null; document.body.style.overflow = ""; }
+
+/* ===== events ===== */
+$("#headCb").addEventListener("click", selectAllItems);
+$("#headCb").addEventListener("keydown", e => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); selectAllItems(); }});
+
+// header "Findings" select-all checkbox
+const selectAllFindings = () => selectFindings("all");
+$("#headFindCb").addEventListener("click", selectAllFindings);
+$("#headFindCb").addEventListener("keydown", e => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); selectAllFindings(); }});
+
+$("#ibBody").addEventListener("click", e => {
+  const tog = e.target.closest("[data-toggle]");
+  if (tog) { const it = ITEMS.find(i => i.id === tog.dataset.toggle); if (it.findings.length) { it.expanded = !it.expanded; render(); } return; }
+  const cb = e.target.closest("[data-cb]");
+  if (cb) {
+    const id = cb.dataset.cb;
+    const it = ITEMS.find(i => i.id === id);
+    if (it) { if (state.findings.size > 0) return; state.items.has(id) ? state.items.delete(id) : state.items.add(id); }
+    else    { if (state.items.size > 0) return; state.findings.has(id) ? state.findings.delete(id) : state.findings.add(id); }
+    render(); return;
+  }
+  const fa = e.target.closest("[data-fact]");
+  if (fa) {
+    const f = ALL_FINDINGS().find(x => x.id === fa.dataset.f);
+    if (fa.dataset.fact === "accept") {
+      if (f.status === "accepted") { f.status = "suggested"; detSavings -= f.savings; }
+      else { detSavings += f.savings; f.status = "accepted"; }
+      render();
+    }
+    if (fa.dataset.fact === "edit") openEditModal([{...f, count:1}]);
+    return;
+  }
+  const row = e.target.closest("tr.item");
+  if (row && !e.target.closest(".cb")) { const it = ITEMS.find(i => i.id === row.dataset.item); if (it.findings.length) { it.expanded = !it.expanded; render(); } }
+});
+
+$("#abClear").addEventListener("click", clearSelection);
+$("#segItemsRules").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; $$("#segItemsRules button").forEach(x => x.classList.toggle("active", x === b)); });
+$("#ubDosLine").addEventListener("click", () => $("#ubDosSwitch").classList.toggle("on"));
+$("#btnCompact").addEventListener("click", () => setDensity("compact"));
+$("#btnComfy").addEventListener("click", () => setDensity("comfy"));
+function setDensity(d) {
+  state.density = d;
+  $("#ibTable").classList.toggle("compact", d === "compact");
+  $("#btnCompact").classList.toggle("on", d === "compact");
+  $("#btnComfy").classList.toggle("on", d === "comfy");
+}
+$("#searchInput").addEventListener("input", e => { state.query = e.target.value; render(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
+
+render();
+</script>
+</body>
+</html>
