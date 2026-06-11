@@ -265,10 +265,11 @@ col.g11{width:116px;}col.g12{width:113px;}col.g13{width:218px;}
    ============================================================ */
 .sub-cell{padding:0!important;background:var(--background);border-bottom:1px solid var(--i-border)!important;}
 /* table.sub shares the .ib grid (declared above) — identical column widths => perfect alignment */
-.sub thead th{height:48px;padding:0 10px;font-size:12px;font-weight:500;color:var(--muted-foreground);text-align:left;
+.sub thead th{height:48px;padding:0 16px;font-size:14px;font-weight:500;color:var(--muted-foreground);text-align:left;
   border-bottom:1px solid var(--i-border);white-space:nowrap;vertical-align:middle;}
 .sub thead th.num{text-align:right;}
 .sub thead th.lead,.sub thead th.sc{padding:0;}
+.sub thead th.qty-c{padding:0 4px;}  /* narrow centered column — small padding so the label fits */
 .sub tbody td{height:48px;padding:0 16px;border-bottom:1px dashed var(--input);font-size:14px;vertical-align:middle;white-space:nowrap;}
 .ib.compact .sub tbody td{height:40px;}
 .sub tbody tr:last-child td{border-bottom:none;}
