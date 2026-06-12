@@ -83,8 +83,8 @@ p{margin:0;}
 .avatar{width:32px;height:32px;border-radius:var(--r-full);background:var(--muted);color:var(--i-fg);
   display:grid;place-items:center;font-weight:600;font-size:11px;margin-top:4px;}
 
-/* fixed at the Figma frame width (sidebar 64 + main 1376 = 1440) — not responsive */
-.main{flex:0 0 1376px;width:1376px;display:flex;flex-direction:column;}
+/* fluid — fills the viewport beside the 64px sidebar; min-width:0 lets it shrink so the table's own scroll handles overflow */
+.main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;}
 
 .topbar{height:64px;flex:0 0 64px;border-bottom:1px solid var(--i-border);background:var(--i-bg);
   display:flex;align-items:center;gap:0;padding:0 16px;}
@@ -195,13 +195,22 @@ p{margin:0;}
 /* ============================================================
    Table block: 1308 columns + 36 rail
    ============================================================ */
-.table-zone{display:flex;align-items:stretch;width:1344px;border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;background:var(--background);}
-.table-scroll{flex:0 0 1308px;width:1308px;}
-table.ib,table.sub{border-collapse:collapse;width:1308px;table-layout:fixed;}
-/* shared fixed column grid — Figma "Main App" (1308 total); main table + findings sub-table use it identically for perfect alignment */
-col.g1{width:72px;}  col.g2{width:64px;}  col.g3{width:24px;}  col.g4{width:110px;} col.g5{width:120px;}
-col.g6{width:108px;} col.g7{width:105px;} col.g8{width:89px;}  col.g9{width:100px;} col.g10{width:69px;}
-col.g11{width:116px;}col.g12{width:113px;}col.g13{width:218px;}
+.table-zone{display:flex;align-items:stretch;width:100%;border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;background:var(--background);}
+/* fills remaining width beside the 36px rail; scrolls horizontally only when narrower than the table's min-width */
+.table-scroll{flex:1 1 auto;min-width:0;overflow-x:auto;}
+table.ib,table.sub{border-collapse:collapse;width:100%;min-width:1308px;table-layout:fixed;}
+/* shared column grid — Figma "Main App" 1308px grid (72,64,24,110,120,108,105,89,100,69,116,113,218).
+   The 3 leading control columns hold fixed-size UI (checkbox / chevron / count) so they stay at constant
+   px — that keeps the cluster tight and, since the chevron is centred in the 64px g2, lined up with the
+   "Findings" header checkbox at every width. The 10 data columns absorb all the extra space, splitting it
+   in their original 1148px-grid proportions. Both tables share this grid, so they scale together and stay
+   perfectly aligned; at the 1308px floor everything resolves back to the exact original pixel widths. */
+col.g1{width:72px;}  col.g2{width:64px;}  col.g3{width:24px;}
+col.g4 {width:calc((100% - 160px) * 0.0958);}  col.g5 {width:calc((100% - 160px) * 0.1045);}
+col.g6 {width:calc((100% - 160px) * 0.0941);}  col.g7 {width:calc((100% - 160px) * 0.0915);}
+col.g8 {width:calc((100% - 160px) * 0.0775);}  col.g9 {width:calc((100% - 160px) * 0.0871);}
+col.g10{width:calc((100% - 160px) * 0.0601);}  col.g11{width:calc((100% - 160px) * 0.1010);}
+col.g12{width:calc((100% - 160px) * 0.0984);}  col.g13{width:calc((100% - 160px) * 0.1900);}
 
 .ib thead th{height:48px;padding:0 16px;font-size:14px;font-weight:500;color:var(--muted-foreground);
   text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;vertical-align:middle;background:var(--background);}
