@@ -196,21 +196,32 @@ p{margin:0;}
    Table block: 1308 columns + 36 rail
    ============================================================ */
 .table-zone{display:flex;align-items:stretch;width:100%;border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;background:var(--background);}
-/* fills remaining width beside the 36px rail; scrolls horizontally only when narrower than the table's min-width */
-.table-scroll{flex:1 1 auto;min-width:0;overflow-x:auto;}
+/* fills remaining width beside the 36px rail; scrolls horizontally only when narrower than the table's
+   min-width. container-type makes this the query container for the responsive column widths below. */
+.table-scroll{flex:1 1 auto;min-width:0;overflow-x:auto;container:ib / inline-size;}
 table.ib,table.sub{border-collapse:collapse;width:100%;min-width:1308px;table-layout:fixed;}
 /* shared column grid — Figma "Main App" 1308px grid (72,64,24,110,120,108,105,89,100,69,116,113,218).
+   Both tables (main + findings sub-table) use this grid, so they always stay perfectly aligned.
    The 3 leading control columns hold fixed-size UI (checkbox / chevron / count) so they stay at constant
    px — that keeps the cluster tight and, since the chevron is centred in the 64px g2, lined up with the
-   "Findings" header checkbox at every width. The 10 data columns absorb all the extra space, splitting it
-   in their original 1148px-grid proportions. Both tables share this grid, so they scale together and stay
-   perfectly aligned; at the 1308px floor everything resolves back to the exact original pixel widths. */
+   "Findings" header checkbox at every width. */
 col.g1{width:72px;}  col.g2{width:64px;}  col.g3{width:24px;}
-col.g4 {width:calc((100% - 160px) * 0.0958);}  col.g5 {width:calc((100% - 160px) * 0.1045);}
-col.g6 {width:calc((100% - 160px) * 0.0941);}  col.g7 {width:calc((100% - 160px) * 0.0915);}
-col.g8 {width:calc((100% - 160px) * 0.0775);}  col.g9 {width:calc((100% - 160px) * 0.0871);}
-col.g10{width:calc((100% - 160px) * 0.0601);}  col.g11{width:calc((100% - 160px) * 0.1010);}
-col.g12{width:calc((100% - 160px) * 0.0984);}  col.g13{width:calc((100% - 160px) * 0.1900);}
+/* Data columns default to their exact pixel widths (sum = 1308). This is the floor used while the table
+   is scrolling, and the safe fallback where container queries aren't supported. */
+col.g4{width:110px;}  col.g5{width:120px;}  col.g6{width:108px;}  col.g7{width:105px;}  col.g8{width:89px;}
+col.g9{width:100px;}  col.g10{width:69px;}  col.g11{width:116px;} col.g12{width:113px;} col.g13{width:218px;}
+/* When the scroll area has room beyond the 1308 floor, grow the data columns proportionally to fill it,
+   splitting the extra space in their original 1148px-grid proportions. Gated on the *actual* scroll-area
+   width via a container query, so the calc()'d %s only apply when the table width equals the container —
+   never while the min-width floor is forcing the box wider than its container (which left a blank strip
+   on the right and overflowing cells, because % column widths resolve against the container, not the box). */
+@container ib (min-width:1309px){
+  col.g4{width:calc((100% - 160px) * 0.0958);}  col.g5{width:calc((100% - 160px) * 0.1045);}
+  col.g6{width:calc((100% - 160px) * 0.0941);}  col.g7{width:calc((100% - 160px) * 0.0915);}
+  col.g8{width:calc((100% - 160px) * 0.0775);}  col.g9{width:calc((100% - 160px) * 0.0871);}
+  col.g10{width:calc((100% - 160px) * 0.0601);} col.g11{width:calc((100% - 160px) * 0.1010);}
+  col.g12{width:calc((100% - 160px) * 0.0984);} col.g13{width:calc((100% - 160px) * 0.1900);}
+}
 
 .ib thead th{height:48px;padding:0 16px;font-size:14px;font-weight:500;color:var(--muted-foreground);
   text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;vertical-align:middle;background:var(--background);}
